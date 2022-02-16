@@ -1,0 +1,211 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
+# Copyright (C) 2022 J. Nathanael Philipp (jnphilipp) <nathanael@philipp.land>
+"""Converter for different types of geo coordinates.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
+import sys
+import utm
+
+from argparse import ArgumentParser, RawTextHelpFormatter
+from csv import DictWriter, Sniffer, QUOTE_ALL
+from io import StringIO
+
+
+__author__ = "J. Nathanael Philipp"
+__email__ = "nathanael@philipp.land"
+__license__ = "GPLv3"
+__version__ = "0.1.0"
+__github__ = "https://github.com/jnphilipp/coordcon"
+VERSION = (
+    f"%(prog)s v{__version__}\n\nReport bugs to {__github__}/issues."
+    + f"\n\nWritten by {__author__} <{__email__}>"
+)
+
+
+if __name__ == "__main__":
+    parser = ArgumentParser(
+        prog="coordcon",
+        formatter_class=RawTextHelpFormatter
+    )
+    parser.add_argument("-v", "--version", action="version", version=VERSION)
+    parser.add_argument(
+        "-i", "--inplace", action="store_true", help="overrites input file"
+    )
+    parser.add_argument(
+        "IN",
+        nargs="*",
+        help="CSV to read coordinates from",
+    )
+
+    args = parser.parse_args()
+
+    fd_in = None
+    fd_out = sys.stdout
+    if len(args.IN) == 4:
+        fd_in = StringIO(f"{' '.join(args.IN)}\n")
+    elif len(args.IN) == 2:
+        try:
+            fd_in = open(args.IN[0], "r", encoding="utf8")
+            fd_out = open(args.IN[1], "w", encoding="utf8")
+        except FileNotFoundError:
+            try:
+                float(args.IN[0])
+                float(args.IN[0])
+                fd_in = StringIO(f"{' '.join(args.IN)}\n")
+            except ValueError:
+                print(
+                    "When providing two arguments they either need both to be floats"
+                    + " or files.", file=sys.stderr)
+    elif len(args.IN) == 1:
+        try:
+            fd_in = open(args.IN[0], "r", encoding="utf8")
+        except FileNotFoundError as e:
+            print("Field not found.", file=sys.stderr)
+            print(e, file=sys.stderr)
+    elif len(args.IN) == 0 and not sys.stdin.isatty():
+        fd_in = sys.stdin
+    else:
+        print("Argument(s) not recognised.", file=sys.stderr)
+
+    if fd_in:
+        buffer = StringIO(fd_in.read()) if not fd_in.seekable() else fd_in
+        buffer.seek(0)
+        dialect = Sniffer().sniff(buffer.read())
+        if dialect.delimiter == "," or dialect.delimiter == ";":
+            dialect.quoting = QUOTE_ALL
+        buffer.seek(0)
+
+        has_header = False
+
+        latitude_fieldname = None
+        longitude_fieldname = None
+        easting_fieldname = None
+        northing_fieldname = None
+        zone_number_fieldname = None
+        zone_letter_fieldname = None
+
+        data = []
+        fieldnames = []
+        for i, line in enumerate(buffer.readlines()):
+            line = [
+                field.strip(dialect.quotechar)
+                for field in line.strip().split(dialect.delimiter)
+            ]
+
+            if i == 0:
+                for j, field in enumerate(line):
+                    if "latitude" == field.lower() or "lat" == field.lower():
+                        latitude_fieldname = j
+                    elif "longitude" == field.lower() or "long" == field.lower():
+                        longitude_fieldname = j
+                    elif "easting" == field.lower():
+                        easting_fieldname = j
+                    elif "northing" == field.lower():
+                        northing_fieldname = j
+                    elif (
+                        "zone_number" == field.lower()
+                        or "zone number" == field.lower()
+                        or "zone-number" == field.lower()
+                    ):
+                        zone_number_fieldname = j
+                    elif (
+                        "zone_letter" == field.lower()
+                        or "zone letter" == field.lower()
+                        or "zone-letter" == field.lower()
+                    ):
+                        zone_letter_fieldname = j
+                if latitude_fieldname is not None and longitude_fieldname is not None:
+                    has_header = True
+                    fieldnames = line + [
+                        "Easting", "Northing", "Zone number", "Zone letter"
+                    ]
+                    continue
+                elif (
+                    easting_fieldname is not None
+                    and northing_fieldname is not None
+                    and zone_number_fieldname is not None
+                    and zone_letter_fieldname is not None
+                ):
+                    has_header = True
+                    fieldnames = line + ["Longitude", "Latitude"]
+                    continue
+                else:
+                    if len(line) == 4:
+                        easting_fieldname = 0
+                        northing_fieldname = 1
+                        zone_number_fieldname = 2
+                        zone_letter_fieldname = 3
+                        fieldnames = ["Longitude", "Latitude"]
+                    elif len(line) == 2:
+                        latitude_fieldname = 0
+                        longitude_fieldname = 1
+                        fieldnames = [
+                            "Easting", "Northing", "Zone number", "Zone letter"
+                        ]
+                    else:
+                        raise RuntimeError("Unable to parse first line.")
+
+            if latitude_fieldname is not None and longitude_fieldname is not None:
+                if has_header:
+                    row = dict(
+                        (k, v) for k, v in zip(fieldnames[:-4], line)
+                    )
+                else:
+                    row = {}
+
+                (
+                    row["Easting"],
+                    row["Northing"],
+                    row["Zone number"],
+                    row["Zone letter"],
+                ) = utm.from_latlon(
+                    float(line[latitude_fieldname]), float(line[longitude_fieldname])
+                )
+                data.append(row)
+            elif (
+                easting_fieldname is not None
+                and northing_fieldname is not None
+                and zone_number_fieldname is not None
+                and zone_letter_fieldname is not None
+            ):
+                if has_header:
+                    row = dict(
+                        (k, v) for k, v in zip(fieldnames[:-2], line)
+                    )
+                else:
+                    row = {}
+
+                row["Longitude"], row["Latitude"] = utm.to_latlon(
+                    float(line[easting_fieldname]),
+                    float(line[northing_fieldname]),
+                    int(line[zone_number_fieldname]),
+                    line[zone_letter_fieldname],
+                )
+                data.append(row)
+
+        if args.inplace and fd_in.name != "<stdin>":
+            out = open(fd_in.name, "w", encoding="utf8")
+        else:
+            out = fd_out
+
+        writer = DictWriter(out, fieldnames=fieldnames, dialect=dialect)
+        if has_header:
+            writer.writeheader()
+        writer.writerows(data)
+    else:
+        parser.print_help()
