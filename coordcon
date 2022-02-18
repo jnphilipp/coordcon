@@ -17,13 +17,13 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-
 import sys
 import utm
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 from csv import DictWriter, Sniffer, QUOTE_ALL
 from io import StringIO
+from typing import List, IO, Optional
 
 
 __author__ = "J. Nathanael Philipp"
@@ -38,10 +38,7 @@ VERSION = (
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser(
-        prog="coordcon",
-        formatter_class=RawTextHelpFormatter
-    )
+    parser = ArgumentParser(prog="coordcon", formatter_class=RawTextHelpFormatter)
     parser.add_argument("-v", "--version", action="version", version=VERSION)
     parser.add_argument(
         "-i", "--inplace", action="store_true", help="overrites input file"
@@ -54,7 +51,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    fd_in = None
+    fd_in: Optional[IO] = None
     fd_out = sys.stdout
     if len(args.IN) == 4:
         fd_in = StringIO(f"{' '.join(args.IN)}\n")
@@ -70,7 +67,9 @@ if __name__ == "__main__":
             except ValueError:
                 print(
                     "When providing two arguments they either need both to be floats"
-                    + " or files.", file=sys.stderr)
+                    + " or files.",
+                    file=sys.stderr,
+                )
     elif len(args.IN) == 1:
         try:
             fd_in = open(args.IN[0], "r", encoding="utf8")
@@ -100,11 +99,11 @@ if __name__ == "__main__":
         zone_letter_fieldname = None
 
         data = []
-        fieldnames = []
-        for i, line in enumerate(buffer.readlines()):
+        fieldnames: List[str] = []
+        for i, l in enumerate(buffer.readlines()):
             line = [
                 field.strip(dialect.quotechar)
-                for field in line.strip().split(dialect.delimiter)
+                for field in l.strip().split(dialect.delimiter)
             ]
 
             if i == 0:
@@ -132,7 +131,10 @@ if __name__ == "__main__":
                 if latitude_fieldname is not None and longitude_fieldname is not None:
                     has_header = True
                     fieldnames = line + [
-                        "Easting", "Northing", "Zone number", "Zone letter"
+                        "Easting",
+                        "Northing",
+                        "Zone number",
+                        "Zone letter",
                     ]
                     continue
                 elif (
@@ -150,32 +152,35 @@ if __name__ == "__main__":
                         northing_fieldname = 1
                         zone_number_fieldname = 2
                         zone_letter_fieldname = 3
-                        fieldnames = ["Longitude", "Latitude"]
+                        fieldnames = ["Latitude", "Longitude"]
                     elif len(line) == 2:
                         latitude_fieldname = 0
                         longitude_fieldname = 1
                         fieldnames = [
-                            "Easting", "Northing", "Zone number", "Zone letter"
+                            "Easting",
+                            "Northing",
+                            "Zone number",
+                            "Zone letter",
                         ]
                     else:
                         raise RuntimeError("Unable to parse first line.")
 
             if latitude_fieldname is not None and longitude_fieldname is not None:
                 if has_header:
-                    row = dict(
-                        (k, v) for k, v in zip(fieldnames[:-4], line)
-                    )
+                    row = dict((k, v) for k, v in zip(fieldnames[:-4], line))
                 else:
                     row = {}
 
                 (
-                    row["Easting"],
-                    row["Northing"],
+                    easting,
+                    northing,
                     row["Zone number"],
                     row["Zone letter"],
                 ) = utm.from_latlon(
                     float(line[latitude_fieldname]), float(line[longitude_fieldname])
                 )
+                row["Easting"] = f"{easting:.3f}"
+                row["Northing"] = f"{northing:.3f}"
                 data.append(row)
             elif (
                 easting_fieldname is not None
@@ -184,18 +189,18 @@ if __name__ == "__main__":
                 and zone_letter_fieldname is not None
             ):
                 if has_header:
-                    row = dict(
-                        (k, v) for k, v in zip(fieldnames[:-2], line)
-                    )
+                    row = dict((k, v) for k, v in zip(fieldnames[:-2], line))
                 else:
                     row = {}
 
-                row["Longitude"], row["Latitude"] = utm.to_latlon(
+                lat, lon = utm.to_latlon(
                     float(line[easting_fieldname]),
                     float(line[northing_fieldname]),
                     int(line[zone_number_fieldname]),
                     line[zone_letter_fieldname],
                 )
+                row["Latitude"] = f"{lat:.6f}"
+                row["Longitude"] = f"{lon:.6f}"
                 data.append(row)
 
         if args.inplace and fd_in.name != "<stdin>":
