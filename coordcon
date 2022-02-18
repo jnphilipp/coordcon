@@ -55,6 +55,10 @@ if __name__ == "__main__":
     fd_out = sys.stdout
     if len(args.IN) == 4:
         fd_in = StringIO(f"{' '.join(args.IN)}\n")
+    elif len(args.IN) == 3:
+        fd_in = StringIO(
+            f"{' '.join(args.IN[:2] + [args.IN[2][:-1], args.IN[2][-1]])}\n"
+        )
     elif len(args.IN) == 2:
         try:
             fd_in = open(args.IN[0], "r", encoding="utf8")
@@ -95,6 +99,7 @@ if __name__ == "__main__":
         longitude_fieldname = None
         easting_fieldname = None
         northing_fieldname = None
+        zone_fieldname = None
         zone_number_fieldname = None
         zone_letter_fieldname = None
 
@@ -128,6 +133,8 @@ if __name__ == "__main__":
                         or "zone-letter" == field.lower()
                     ):
                         zone_letter_fieldname = j
+                    elif "zone" == field.lower():
+                        zone_fieldname = j
                 if latitude_fieldname is not None and longitude_fieldname is not None:
                     has_header = True
                     fieldnames = line + [
@@ -152,6 +159,11 @@ if __name__ == "__main__":
                         northing_fieldname = 1
                         zone_number_fieldname = 2
                         zone_letter_fieldname = 3
+                        fieldnames = ["Latitude", "Longitude"]
+                    elif len(line) == 3:
+                        easting_fieldname = 0
+                        northing_fieldname = 1
+                        zone_fieldname = 2
                         fieldnames = ["Latitude", "Longitude"]
                     elif len(line) == 2:
                         latitude_fieldname = 0
@@ -185,19 +197,34 @@ if __name__ == "__main__":
             elif (
                 easting_fieldname is not None
                 and northing_fieldname is not None
-                and zone_number_fieldname is not None
-                and zone_letter_fieldname is not None
+                and (
+                    zone_fieldname is not None
+                    or (
+                        zone_number_fieldname is not None
+                        and zone_letter_fieldname is not None
+                    )
+                )
             ):
                 if has_header:
                     row = dict((k, v) for k, v in zip(fieldnames[:-2], line))
                 else:
                     row = {}
 
+                if zone_fieldname is not None:
+                    zone_number = int(line[zone_fieldname][:-1])
+                    zone_letter = line[zone_fieldname][-1]
+                elif (
+                    zone_number_fieldname is not None
+                    and zone_letter_fieldname is not None
+                ):
+                    zone_number = int(line[zone_number_fieldname])
+                    zone_letter = line[zone_letter_fieldname]
+
                 lat, lon = utm.to_latlon(
                     float(line[easting_fieldname]),
                     float(line[northing_fieldname]),
-                    int(line[zone_number_fieldname]),
-                    line[zone_letter_fieldname],
+                    zone_number,
+                    zone_letter,
                 )
                 row["Latitude"] = f"{lat:.6f}"
                 row["Longitude"] = f"{lon:.6f}"
