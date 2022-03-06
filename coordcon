@@ -41,12 +41,12 @@ if __name__ == "__main__":
     parser = ArgumentParser(prog="coordcon", formatter_class=RawTextHelpFormatter)
     parser.add_argument("-v", "--version", action="version", version=VERSION)
     parser.add_argument(
-        "-i", "--inplace", action="store_true", help="overrites input file"
+        "-i", "--inplace", action="store_true", help="overrite input file"
     )
     parser.add_argument(
         "IN",
         nargs="*",
-        help="CSV to read coordinates from",
+        help="geo coordinates or CSV with geo coordinates to convert",
     )
 
     args = parser.parse_args()
