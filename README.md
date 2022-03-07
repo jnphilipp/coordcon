@@ -13,7 +13,7 @@ Commandline tool to convert geo coordinates between utm and latitute/longitude.
 
 * from Source: ```make install```
 * deb-Package: ```make deb```
-* [AUR]()
+* [AUR](https://aur.archlinux.org/packages/coordcon)
 
 
 ## Usage:
