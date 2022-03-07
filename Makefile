@@ -46,8 +46,10 @@ deb: test build/package/DEBIAN/control
 	@echo "coordcon.deb completed."
 
 
-install: build/copyright build/changelog.gz build/coordcon.1.gz
+install: coordcon.bash-completion build/copyright build/changelog.gz build/coordcon.1.gz
 	$(Q)install -Dm 0755 coordcon ${DEST_DIR}${BIN_DIR}/coordcon
+
+	$(Q)install -Dm 0644 coordcon.bash-completion "${DEST_DIR}/${BASH_COMPLETION_DIR}"/coordcon.bash-completion
 
 	$(Q)install -Dm 0644 build/changelog.gz ${DEST_DIR}${DOC_DIR}/coordcon/changelog.Debian.gz
 	$(Q)install -Dm 0644 build/copyright ${DEST_DIR}${DOC_DIR}/coordcon/copyright
@@ -59,6 +61,7 @@ install: build/copyright build/changelog.gz build/coordcon.1.gz
 
 uninstall:
 	$(Q)rm -r ${DEST_DIR}${DOC_DIR}/coordcon
+	$(Q)rm ${DEST_DIR}${BASH_COMPLETION_DIR}/coordcon.bash-completion
 	$(Q)rm ${DEST_DIR}${BIN_DIR}/coordcon
 	$(Q)rm ${DEST_DIR}${MAN_DIR}/man1/coordcon.1.gz
 

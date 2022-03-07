@@ -1,0 +1,17 @@
+_file="-o filenames"
+_coordcon()
+{
+    local cur prev opts base subcommand
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+    opts="-h --help -i --inplace -v --version"
+    opts=$(compgen -W "${opts}" -- ${cur})
+
+    OLDIFS=$IFS
+    IFS=$'\n'
+    COMPREPLY=( ${opts[@]} $(compgen -f -- ${cur}) )
+    IFS=$OLDIFS
+}
+complete -d ${_file} -F _coordcon coordcon
