@@ -17,6 +17,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
 import sys
 import utm
 
@@ -147,8 +148,13 @@ if __name__ == "__main__":
                 elif (
                     easting_fieldname is not None
                     and northing_fieldname is not None
-                    and zone_number_fieldname is not None
-                    and zone_letter_fieldname is not None
+                    and (
+                        zone_fieldname is not None
+                        or (
+                            zone_number_fieldname is not None
+                            and zone_letter_fieldname is not None
+                        )
+                    )
                 ):
                     has_header = True
                     fieldnames = line + ["Longitude", "Latitude"]
