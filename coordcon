@@ -18,6 +18,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import re
 import sys
 import utm
 
@@ -161,15 +162,52 @@ if __name__ == "__main__":
                     continue
                 else:
                     if len(line) == 4:
-                        easting_fieldname = 0
-                        northing_fieldname = 1
-                        zone_number_fieldname = 2
-                        zone_letter_fieldname = 3
+                        if re.fullmatch(
+                            r"([1-5][0-9]|[1-9]|60)",
+                            line[0],
+                        ) and re.fullmatch(
+                            rf"[{utm.conversion.ZONE_LETTERS}]",
+                            line[1],
+                        ):
+                            easting_fieldname = 2
+                            northing_fieldname = 3
+                            zone_number_fieldname = 0
+                            zone_letter_fieldname = 1
+                        elif re.fullmatch(
+                            r"([1-5][0-9]|[1-9]|60)",
+                            line[2],
+                        ) and re.fullmatch(
+                            rf"[{utm.conversion.ZONE_LETTERS}]",
+                            line[3],
+                        ):
+                            easting_fieldname = 0
+                            northing_fieldname = 1
+                            zone_number_fieldname = 2
+                            zone_letter_fieldname = 3
+                        else:
+                            raise RuntimeError(
+                                "Unable to match zone number and zone letter."
+                            )
                         fieldnames = ["Latitude", "Longitude"]
                     elif len(line) == 3:
-                        easting_fieldname = 0
-                        northing_fieldname = 1
-                        zone_fieldname = 2
+                        if re.fullmatch(
+                            rf"([1-5][0-9]|[1-9]|60)[{utm.conversion.ZONE_LETTERS}]",
+                            line[0],
+                        ):
+                            easting_fieldname = 1
+                            northing_fieldname = 2
+                            zone_fieldname = 0
+                        elif re.fullmatch(
+                            rf"([1-5][0-9]|[1-9]|60)[{utm.conversion.ZONE_LETTERS}]",
+                            line[2],
+                        ):
+                            easting_fieldname = 0
+                            northing_fieldname = 1
+                            zone_fieldname = 2
+                        else:
+                            raise RuntimeError(
+                                "Unable to match zone number and zone letter."
+                            )
                         fieldnames = ["Latitude", "Longitude"]
                     elif len(line) == 2:
                         latitude_fieldname = 0
