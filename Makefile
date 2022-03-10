@@ -21,10 +21,14 @@ print-%:
 
 clean:
 	$(Q)rm -rf ./build
-	$(Q)find . -name __pycache__ -exec rm -rf {} \;
+	$(Q)find . -depth -name __pycache__ -type d -exec rm -rf {} \;
 
 
 venv:
+	$(Q)make .venv
+
+
+.venv:
 	$(Q)virtualenv -p /usr/bin/python3 .venv
 	$(Q)( \
 		source .venv/bin/activate; \
