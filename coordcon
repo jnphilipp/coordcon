@@ -62,7 +62,7 @@ if __name__ == "__main__":
     elif len(args.IN) == 2:
         try:
             fd_in = open(args.IN[0], "r", encoding="utf8")
-            fd_out = open(args.IN[1], "w", encoding="utf8")
+            fd_out = open(args.IN[1], "w", encoding="utf8", newline="")
         except FileNotFoundError:
             try:
                 float(args.IN[0])
@@ -273,7 +273,7 @@ if __name__ == "__main__":
                 data.append(row)
 
         if args.inplace and fd_in.name != "<stdin>":
-            out = open(fd_in.name, "w", encoding="utf8")
+            out = open(fd_in.name, "w", encoding="utf8", newline="")
         else:
             out = fd_out
 

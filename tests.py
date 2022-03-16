@@ -154,6 +154,18 @@ class CoordconTests(unittest.TestCase):
         output = p.communicate(input=utm)[0]
         self.assertEqual(lat_long, output)
 
+        p = Popen(
+            [
+                "./coordcon",
+            ],
+            stdin=PIPE,
+            stdout=PIPE,
+            stderr=PIPE,
+            encoding="utf8",
+        )
+        output = p.communicate(input=lat_long)[0]
+        self.assertEqual(utm, output)
+
         utm_in = """56L 752386.614 8744229.492
 26N 166021.443 0.000
 23X 475944.783 9142225.593
@@ -170,8 +182,14 @@ class CoordconTests(unittest.TestCase):
             stderr=PIPE,
             encoding="utf8",
         )
-        output = p.communicate(input=lat_long)[0]
-        self.assertEqual(utm, output)
+        output = p.communicate(input=utm_in)[0]
+        self.assertEqual(lat_long, output)
+
+        utm_in = (
+            "56L 752386.614 8744229.492\n\r26N 166021.443 0.000\r\n"
+            + "23X 475944.783 9142225.593\r\n42F 507958.611 4537763.568\r\n"
+            + "33U 457464.696 5673338.493\r\n"
+        )
 
         p = Popen(
             [
