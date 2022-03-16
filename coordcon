@@ -58,9 +58,7 @@ if __name__ == "__main__":
     if len(args.IN) == 4:
         fd_in = StringIO(f"{' '.join(args.IN)}\n")
     elif len(args.IN) == 3:
-        fd_in = StringIO(
-            f"{' '.join(args.IN[:2] + [args.IN[2][:-1], args.IN[2][-1]])}\n"
-        )
+        fd_in = StringIO(f"{' '.join(args.IN)}\n")
     elif len(args.IN) == 2:
         try:
             fd_in = open(args.IN[0], "r", encoding="utf8")

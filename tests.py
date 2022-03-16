@@ -68,6 +68,15 @@ class CoordconTests(unittest.TestCase):
         output = p.communicate()[0]
         self.assertEqual(lat_long[1], output.split())
 
+        p = Popen(
+            ["./coordcon", "33U", "457464.696", "5673338.493"],
+            stdout=PIPE,
+            stderr=PIPE,
+            encoding="utf8",
+        )
+        output = p.communicate()[0]
+        self.assertEqual("51.209858 14.391068", output.strip())
+
     def test_as_input(self):
         lat_long = "51.000000 10.000000"
         utm = "570168.862 5650300.787 32 U"
@@ -112,11 +121,13 @@ class CoordconTests(unittest.TestCase):
 0.000000 -30.000000
 82.332000 -46.615000
 -49.312813 69.109497
+51.209858 14.391068
 """
         utm = """752386.614 8744229.492 56 L
 166021.443 0.000 26 N
 475944.783 9142225.593 23 X
 507958.611 4537763.568 42 F
+457464.696 5673338.493 33 U
 """
 
         p = Popen(
@@ -141,6 +152,37 @@ class CoordconTests(unittest.TestCase):
             encoding="utf8",
         )
         output = p.communicate(input=utm)[0]
+        self.assertEqual(lat_long, output)
+
+        utm_in = """56L 752386.614 8744229.492
+26N 166021.443 0.000
+23X 475944.783 9142225.593
+42F 507958.611 4537763.568
+33U 457464.696 5673338.493
+"""
+
+        p = Popen(
+            [
+                "./coordcon",
+            ],
+            stdin=PIPE,
+            stdout=PIPE,
+            stderr=PIPE,
+            encoding="utf8",
+        )
+        output = p.communicate(input=lat_long)[0]
+        self.assertEqual(utm, output)
+
+        p = Popen(
+            [
+                "./coordcon",
+            ],
+            stdin=PIPE,
+            stdout=PIPE,
+            stderr=PIPE,
+            encoding="utf8",
+        )
+        output = p.communicate(input=utm_in)[0]
         self.assertEqual(lat_long, output)
 
     def test_as_csv_file(self):
